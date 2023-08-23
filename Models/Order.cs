@@ -12,4 +12,6 @@ public class Order
     public PaintColor PaintColor { get; set; }
     public int InteriorId { get; set; }
     public Interior Interior { get; set; }
+    public decimal TotalCost { get; set; }
+    public bool Fulfilled { get; set; }
 }

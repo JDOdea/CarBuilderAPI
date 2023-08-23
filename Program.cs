@@ -128,7 +128,8 @@ List<Order> orders = new List<Order>()
         WheelId = 4,
         TechnologyId = 2,
         PaintId = 1,
-        InteriorId = 3
+        InteriorId = 3,
+        Fulfilled = false
     },
     new Order()
     {
@@ -137,7 +138,8 @@ List<Order> orders = new List<Order>()
         WheelId = 3,
         TechnologyId = 1,
         PaintId = 4,
-        InteriorId = 2
+        InteriorId = 2,
+        Fulfilled = false
     },
     new Order()
     {
@@ -146,7 +148,8 @@ List<Order> orders = new List<Order>()
         WheelId = 2,
         TechnologyId = 4,
         PaintId = 3,
-        InteriorId = 1
+        InteriorId = 1,
+        Fulfilled = false
     },
     new Order()
     {
@@ -155,7 +158,8 @@ List<Order> orders = new List<Order>()
         WheelId = 1,
         TechnologyId = 3,
         PaintId = 2,
-        InteriorId = 4
+        InteriorId = 4,
+        Fulfilled = false
     }
 };
 #endregion
@@ -167,6 +171,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors();
 
 var app = builder.Build();
 
@@ -175,6 +180,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors(options =>
+                {
+                    options.AllowAnyOrigin();
+                    options.AllowAnyMethod();
+                    options.AllowAnyHeader();
+                });
 }
 
 app.UseHttpsRedirection();
@@ -214,8 +225,9 @@ app.UseHttpsRedirection();
                 order.Technology = technologies.FirstOrDefault(t => t.Id == order.TechnologyId);
                 order.PaintColor = paintColors.FirstOrDefault(p => p.Id == order.PaintId);
                 order.Interior = interiors.FirstOrDefault(i => i.Id == order.InteriorId);
+                order.TotalCost = order.Wheels.Price + order.Technology.Price + order.PaintColor.Price + order.Interior.Price;
             }
-            return orders;
+            return orders.Where(o => o.Fulfilled == false).ToList();
         });
 
         //  Order by ID
@@ -240,6 +252,23 @@ app.UseHttpsRedirection();
             order.Timestamp = DateTime.Now;
             orders.Add(order);
             return order;
+        });
+
+        // Mark Order as Complete
+        app.MapPost("/orders/{id}/fulfill", (int id) =>
+        {
+            //  find requested order
+            Order orderToUpdate = orders.FirstOrDefault(o => o.Id == id);
+            // grab index of found order
+            int orderIndex = orders.IndexOf(orderToUpdate);
+            // if no such order, send back a not found result
+            if (orderToUpdate == null)
+            {
+                return Results.NotFound();
+            }
+            //  update found order
+            orders[orderIndex].Fulfilled = true;
+            return Results.Ok();
         });
 
     #endregion
